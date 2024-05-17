@@ -17,6 +17,7 @@ Clone it from this repository:
 
 ```
 git clone git@github.com:xdas-dev/tutorials.git
+cd tutorials
 ```
 
 ### Creating a dedicated environment
@@ -35,7 +36,7 @@ conda install pip --yes
 Xdas is a pure python package. It can easily be installed with pip from PyPI:
 
 ```
-pip install xdas==0.1rc1
+pip install xdas
 ```
 
 ### Additional dependencies
@@ -43,7 +44,7 @@ pip install xdas==0.1rc1
 This series of tutorials also require additional libraries
 
 ```
-pip install seisbench
+pip install notebook, seisbench
 ```
 
 ### Download Data samples
@@ -52,8 +53,7 @@ Some samples are gracefully provided by the ABYSS project. You can download them
 
 ```
 wget <url>
-unzip <path>
-rm <zip>
+unzip data.zip
 rm -rf outputs
 mkdir -p outputs
 ```

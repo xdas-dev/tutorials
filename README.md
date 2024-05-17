@@ -11,6 +11,14 @@ You first need to setup an working environment. Then the tutorials are organized
 
 ## Setup the tutorial environment
 
+### Get the source code
+
+Clone it from this repository:
+
+```
+git clone git@github.com:xdas-dev/tutorials.git
+```
+
 ### Creating a dedicated environment
 
 We  recommend to use conda to create an isolated environment:

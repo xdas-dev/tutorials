@@ -1,26 +1,53 @@
-# Xdas Python Tutorial Series
+# Welcome to the Xdas tutorial series!
 
-This repository contains a tutorial series for Xdas, a Python library for working with DAS (Distributed Acoustic Sensing) data.
+This repository contains a series of tutorials to learn and play with the [Xdas](https://github.com/xdas-dev/xdas) python library. Xdas is a Python library designed to facilitate the processing and analysis of DAS data.
 
-## Introduction
 
-Distributed Acoustic Sensing (DAS) is a technology that allows for the measurement of acoustic interactions along the length of a fiber optic cable. Xdas is a Python library designed to facilitate the processing and analysis of DAS data.
+## Overview
 
 This tutorial series aims to provide a comprehensive guide to using the Xdas library, from basic data manipulation to advanced analysis techniques.
 
-## Getting Started
+You first need to setup an working environment. Then the tutorials are organized in a progressive manner, with each tutorial building on concepts introduced in the previous ones. It's recommended to go through them in order.
 
-To get started with this tutorial series, you'll need to have Python installed on your machine. You can then install the Xdas library using pip:
+## Setup the tutorial environment
+
+### Creating a dedicated environment
+
+We  recommend to use conda to create an isolated environment:
 
 ```
-pip install xdas
+conda config --add channels conda-forge
+conda create -n xdas-tutorials
+conda activate xdas-tutorials
+conda install pip --yes
 ```
 
-## Tutorials
-The tutorials are organized in a progressive manner, with each tutorial building on concepts introduced in the previous ones. It's recommended to go through them in order.
+### Installing Xdas
 
-## Contributing
-Contributions to this tutorial series are welcome. If you have a suggestion or find an issue, please open an issue on this repository.
+Xdas is a pure python package. It can easily be installed with pip from PyPI:
 
-## License
-This project is licensed under the GNU GPL v3 License. See the LICENSE.md file for details.
+```
+pip install xdas==0.1rc1
+```
+
+### Additional dependencies
+
+This series of tutorials also require additional libraries
+
+```
+pip install seisbench
+```
+
+### Download Data samples
+
+Some samples are gracefully provided by the ABYSS project. You can download them from zenodo:
+
+```
+wget <url>
+unzip <path>
+rm <zip>
+rm -rf outputs
+mkdir -p outputs
+```
+
+You are ready to go!

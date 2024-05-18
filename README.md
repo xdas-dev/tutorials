@@ -52,7 +52,7 @@ pip install notebook, seisbench
 Some samples are gracefully provided by the ABYSS project. You can download them from zenodo:
 
 ```
-wget <url>
+wget https://zenodo.org/records/11212055/files/data.zip
 unzip data.zip
 rm -rf outputs
 mkdir -p outputs

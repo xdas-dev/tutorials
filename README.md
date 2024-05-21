@@ -21,6 +21,18 @@ git clone git@github.com:xdas-dev/tutorials.git
 cd tutorials
 ```
 
+To reset the folder to initial state you can do:
+
+```
+git reset --hard HEAD
+```
+
+You can also fetch latest updates by:
+
+```
+git pull
+```
+
 ### Creating a dedicated environment
 
 We  recommend to use conda to create an isolated environment:

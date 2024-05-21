@@ -1,6 +1,6 @@
 # Welcome to the Xdas tutorial series!
 
-[![DOI](https://zenodo.org/badge/{802170309}.svg)](https://zenodo.org/badge/latestdoi/{802170309})
+[![DOI](https://zenodo.org/badge/802170309.svg)](https://zenodo.org/badge/latestdoi/802170309)
 
 This repository contains a series of tutorials to learn and play with the [Xdas](https://github.com/xdas-dev/xdas) python library. Xdas is a Python library designed to facilitate the processing and analysis of DAS data.
 

@@ -17,7 +17,7 @@ You first need to setup an working environment. Then the tutorials are organized
 Clone it from this repository:
 
 ```
-git clone git@github.com:xdas-dev/tutorials.git
+git clone https://github.com/xdas-dev/tutorials.git
 cd tutorials
 ```
 
@@ -57,7 +57,7 @@ pip install xdas
 This series of tutorials also require additional libraries
 
 ```
-pip install notebook, seisbench
+pip install notebook seisbench
 ```
 
 ### Download Data samples

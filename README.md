@@ -46,13 +46,16 @@ notebooks use, downloads the DAS samples from Zenodo and unzips them into
 `data/`, and fetches the seismological waveforms of notebook 05 into
 `data/stations/` — one miniSEED file per station, plus the inventory.
 
-Two things worth knowing before you start it:
+A few things worth knowing before you start it:
 
 - **It downloads 3.6 GB and unpacks to 4.5 GB**, so keep ~9 GB free while it
   runs. The archive is deleted once unzipped.
 - **It is safe to re-run.** A step already done is skipped, and an interrupted
   download resumes where it stopped. Use `uv run install.py --force` to fetch
   everything again from scratch.
+- **Notebook 07 additionally needs Node.js** on your `PATH`: xpick serves a
+  Bokeh app whose picker tool is compiled when it starts. Any recent Node.js
+  will do, for instance `conda install "nodejs>=18"`.
 
 Then start Jupyter — no environment to activate, `uv run` uses the right one:
 

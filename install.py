@@ -20,9 +20,14 @@ import argparse
 import shutil
 import sys
 import time
+import urllib.error
 import urllib.request
+import warnings
 import zipfile
 from pathlib import Path
+
+# Report as the work happens, even when the output is piped to a file.
+sys.stdout.reconfigure(line_buffering=True)
 
 ROOT = Path(__file__).parent
 DATA = ROOT / "data"
@@ -64,7 +69,15 @@ def download(url, dest):
     if done:
         request.add_header("Range", f"bytes={done}-")
 
-    with urllib.request.urlopen(request) as response:
+    try:
+        response = urllib.request.urlopen(request)
+    except urllib.error.HTTPError as error:
+        if error.code == 416:  # asked past the end: the file is already whole
+            print(f"{dest.name} is already fully downloaded")
+            return
+        raise
+
+    with response:
         if done and response.status != 206:  # no resume, start over
             done = 0
         total = int(response.headers.get("Content-Length", 0)) + done
@@ -111,8 +124,28 @@ def fetch_data(force):
     download(DATA_URL, DATA_ZIP)
 
     print(f"unzipping into {DATA} (a few minutes)")
-    with zipfile.ZipFile(DATA_ZIP) as archive:
-        archive.extractall(ROOT)
+    try:
+        with zipfile.ZipFile(DATA_ZIP) as archive:
+            members = archive.infolist()
+            total = max(sum(member.file_size for member in members), 1)
+            done = 0
+            for member in members:
+                archive.extract(member, ROOT)
+                done += member.file_size
+                print(
+                    f"\r  {human(done)} / {human(total)}  ({100 * done / total:.1f}%)",
+                    end="",
+                    flush=True,
+                )
+        print()
+    except zipfile.BadZipFile:
+        # Most often a data.zip left over from something else: resuming onto it
+        # produces a file of the right size whose contents do not line up.
+        DATA_ZIP.unlink()
+        raise RuntimeError(
+            f"{DATA_ZIP.name} was not a valid archive, so it has been deleted. "
+            "Re-run to download it again."
+        ) from None
     DATA_ZIP.unlink()
 
     missing = [name for name in DATA_DIRS if not (DATA / name).is_dir()]
@@ -182,8 +215,12 @@ def fetch_stations(force):
 
 def fetch_model(force):
     """Cache the pretrained picker, so that nothing is downloaded while picking."""
-    import seisbench
-    from seisbench.models import PhaseNet
+    print("model: loading seisbench, which imports torch and takes a few seconds")
+    with warnings.catch_warnings():
+        # seisbench 0.12.3 leaves an unescaped '\m' in one of its docstrings
+        warnings.simplefilter("ignore", SyntaxWarning)
+        import seisbench
+        from seisbench.models import PhaseNet
 
     cache = Path(seisbench.cache_root) / "models"
     if not force and any(cache.rglob(f"{MODEL}.pt*")):

@@ -83,8 +83,12 @@ git reset --hard HEAD
 
 ### A note on the network
 
-Once `install.py` has run, the only thing still downloaded at run time is the
-`seisbench` pretrained model, fetched the first time notebook 03 picks — so
-run notebook 03 once while connected. Everything else is on disk.
+`install.py` is the only step that needs a connection. It also caches the
+pretrained PhaseNet weights in `~/.seisbench`, so once it has run **the
+notebooks work offline** — the data, the stations and the model are all on
+disk, and `uv run` no longer reaches out either.
+
+The one exception is notebook 07, whose Bokeh picker tool is compiled by
+Node.js the first time xpick serves it.
 
 You are ready to go!

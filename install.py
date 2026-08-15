@@ -7,7 +7,10 @@ starts; the script then fetches the data:
 
   * the DAS samples from Zenodo, unzipped into `data/`,
   * the seismological waveforms used from notebook 05 onwards, saved as one
-    miniSEED file per station in `data/stations/`, next to the inventory.
+    miniSEED file per station in `data/stations/`, next to the inventory,
+  * the pretrained PhaseNet weights, cached in ~/.seisbench.
+
+After it, the notebooks run offline.
 
 Every step is skipped if it is already done, and an interrupted download is
 resumed where it stopped, so re-running is cheap. Pass --force to start over.
@@ -42,6 +45,9 @@ STATIONS_BBOX = {
     "maxlongitude": -69.8,
 }
 STATIONS_CHANNEL = "HH?"
+
+# The pretrained picker of notebooks 03 and 05. Cached in ~/.seisbench.
+MODEL = "diting"
 
 
 def human(size):
@@ -174,6 +180,26 @@ def fetch_stations(force):
     print(f"stations: {len(codes)} stations in {STATIONS}")
 
 
+def fetch_model(force):
+    """Cache the pretrained picker, so that nothing is downloaded while picking."""
+    import seisbench
+    from seisbench.models import PhaseNet
+
+    cache = Path(seisbench.cache_root) / "models"
+    if not force and any(cache.rglob(f"{MODEL}.pt*")):
+        print(f"model: {MODEL} already in {cache}, skipping")
+        return
+
+    print(f"model: fetching the {MODEL} weights of PhaseNet")
+    try:
+        PhaseNet.from_pretrained(MODEL, force=force)
+    except Exception as error:  # noqa: BLE001 -- offline, or the server is down
+        print(f"warning: could not fetch the weights ({type(error).__name__})")
+        print("         notebooks 03 and 05 will fetch them the first time they pick")
+        return
+    print(f"model: cached in {cache}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
@@ -183,6 +209,7 @@ def main():
 
     fetch_data(args.force)
     fetch_stations(args.force)
+    fetch_model(args.force)
     OUTPUTS.mkdir(exist_ok=True)
 
     print("\nready. Start the notebooks with:\n\n    uv run jupyter lab\n")

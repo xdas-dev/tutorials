@@ -1,0 +1,38 @@
+[project]
+name = "xdas-tutorials"
+version = "0.1.0"
+description = "Notebooks for the Xdas tutorial series."
+requires-python = ">=3.11"
+dependencies = [
+    "gmma",
+    "httpx",
+    "ipykernel",
+    "jupyterlab",
+    "matplotlib",
+    "numpy",
+    "obspy",
+    "pandas",
+    "pyproj",
+    "seisbench",
+    "xdas",
+    "xpick",
+]
+
+[tool.uv]
+# The tutorials are a set of notebooks, not a library: install what they need,
+# but do not install this directory itself.
+package = false
+# Keep uv from backtracking numba (pulled in by xdas) to ancient unbuildable
+# versions; recent numba caps numpy, so numpy must be the one to backtrack.
+constraint-dependencies = ["numba>=0.60"]
+
+[tool.uv.sources]
+# Until 0.2.9 is released, the notebooks need the development branch. Once it
+# is out, drop this entry and the dependency resolves from PyPI.
+xdas = { git = "https://github.com/xdas-dev/xdas.git", branch = "dev" }
+# `gmma` is the distribution, `gamma` the import. Not the unrelated PyPI
+# project called GaMMA.
+gmma = { git = "https://github.com/AI4EPS/GaMMA.git" }
+# Notebook 07 drives the REST API of xpick 2, which is not released yet. The
+# `xpick` on PyPI is an unrelated project -- do not install it.
+xpick = { git = "https://github.com/xdas-dev/xpick.git", branch = "v2" }

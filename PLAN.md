@@ -141,13 +141,23 @@ connected to the rest, so it is also the easiest to drop.
 
 ## 5. What I need from you
 
-1. **Cable geometry — the one real blocker.** Lat/lon per channel for at least
-   `SER/N`. Both notebook 05 and notebook 07 already read
-   `data/geometry/SER_N.csv` with columns `distance,latitude,longitude`, and
-   both degrade gracefully without it (05 falls back to a synthetic straight
-   line and says so; 07 prints what it would do). Drop the file in and the
-   DAS channels can join the association, which is the last piece of what you
-   asked for.
+1. ~~**Cable geometry — the one real blocker.**~~ **Resolved.** `install.py`
+   now fetches `CCN_N.csv`, `SER_N.csv` and `SER_S.csv` into `data/geometry/`
+   automatically (`fetch_geometry`, wired into `main()`). The source is the
+   figure data bundled in the companion paper's `codes.zip`
+   (Baillet et al., 2025, JGR, doi:10.1029/2025JB031565, archived at
+   https://zenodo.org/records/15849254) — that zip is 3.3 GB, but the geometry
+   CSVs inside it are pulled out directly with HTTP range requests
+   (`fetch_zip_member`), so nothing close to the full archive is downloaded.
+   Real cable lengths turned out to be ~153 km (CCN/N, SER/S) and ~102 km
+   (SER/N) — notebook 04's `tie_values: [0.0, 150.0]` demo relabels SER/N to
+   150 km for illustration, which is fine for that cell but means points past
+   ~102 km along the real geometry clamp to the last sample when interpolated
+   with `np.interp`; worth a look if the DAS channels are joining the
+   association with visibly wrong positions past that mark. Now that
+   `CCN_N.csv` exists too, the association step could pull in the CCN cable
+   for extra azimuthal coverage — not done here since it changes what
+   the notebook narrates, left for you to decide.
 2. **Whether to apply the renumbering in section 4**, and whether you want the
    streaming notebook.
 3. **Which cuts in section 2 you accept.**

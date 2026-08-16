@@ -8,6 +8,8 @@ starts; the script then fetches the data:
   * the DAS samples from Zenodo, unzipped into `data/`,
   * the seismological waveforms used from notebook 05 onwards, saved as one
     miniSEED file per station in `data/stations/`, next to the inventory,
+  * per-channel cable geometry for CCN/N, SER/N and SER/S, in
+    `data/geometry/`,
   * the pretrained PhaseNet weights, cached in ~/.seisbench.
 
 After it, the notebooks run offline.
@@ -18,12 +20,14 @@ resumed where it stopped, so re-running is cheap. Pass --force to start over.
 
 import argparse
 import shutil
+import struct
 import sys
 import time
 import urllib.error
 import urllib.request
 import warnings
 import zipfile
+import zlib
 from pathlib import Path
 
 # Report as the work happens, even when the output is piped to a file.
@@ -50,6 +54,19 @@ STATIONS_BBOX = {
     "maxlongitude": -69.8,
 }
 STATIONS_CHANNEL = "HH?"
+
+# Per-channel lat/lon for each cable never shipped in data.zip. It does exist,
+# tucked away as figure data inside the 3.3 GB codes.zip of the companion
+# paper (Baillet et al., 2025, JGR, doi:10.1029/2025JB031565) archived at
+# https://zenodo.org/records/15849254. `fetch_geometry` below pulls out just
+# these three CSVs by HTTP range request, never downloading the rest.
+GEOMETRY = DATA / "geometry"
+GEOMETRY_ZIP_URL = "https://zenodo.org/api/records/15849254/files/codes.zip/content"
+GEOMETRY_MEMBERS = {
+    "CCN_N": "codes/figures/data/ccn_cable.csv",
+    "SER_N": "codes/figures/data/srn_cable.csv",
+    "SER_S": "codes/figures/data/srs_cable.csv",
+}
 
 # The pretrained picker of notebooks 03 and 05. Cached in ~/.seisbench.
 MODEL = "diting"
@@ -106,6 +123,82 @@ def download(url, dest):
             f"{dest.name} is {human(dest.stat().st_size)}, expected {human(total)}. "
             "Re-run to resume."
         )
+
+
+def http_get_range(url, start, end):
+    """Fetch `url[start:end+1]`. The server must support Range or this raises."""
+    request = urllib.request.Request(url, headers={"Range": f"bytes={start}-{end}"})
+    with urllib.request.urlopen(request) as response:
+        if response.status != 206:
+            raise RuntimeError(f"{url} does not support byte ranges")
+        return response.read()
+
+
+def fetch_zip_member(url, member):
+    """Pull one file out of a remote zip too big to download whole, by locating
+    it through the end-of-central-directory record and range-fetching only its
+    bytes. Two or three small requests regardless of the archive's size."""
+    max_comment = 1 << 16
+    request = urllib.request.Request(
+        url, headers={"Range": f"bytes=-{22 + max_comment}"}
+    )
+    with urllib.request.urlopen(request) as response:
+        tail = response.read()
+        total_size = int(response.headers["Content-Range"].rsplit("/", 1)[-1])
+    tail_start = total_size - len(tail)
+
+    eocd = tail.rfind(b"PK\x05\x06")
+    if eocd == -1:
+        raise RuntimeError(f"{url}: no end-of-central-directory record found")
+    _, _, _, _, _, cd_size, cd_offset, _ = struct.unpack(
+        "<IHHHHIIH", tail[eocd : eocd + 22]
+    )
+
+    cd_start = cd_offset - tail_start
+    central_dir = (
+        tail[cd_start : cd_start + cd_size]
+        if cd_start >= 0
+        else http_get_range(url, cd_offset, cd_offset + cd_size - 1)
+    )
+
+    offset = 0
+    while offset < len(central_dir):
+        if central_dir[offset : offset + 4] != b"PK\x01\x02":
+            break
+        fields = struct.unpack("<IHHHHHHIIIHHHHHII", central_dir[offset : offset + 46])
+        method, csize, usize = fields[4], fields[8], fields[9]
+        nlen, elen, clen = fields[10], fields[11], fields[12]
+        local_offset = fields[16]
+        name = central_dir[offset + 46 : offset + 46 + nlen].decode()
+        if name == member:
+            break
+        offset += 46 + nlen + elen + clen
+    else:
+        raise RuntimeError(f"{url}: {member!r} not found")
+
+    # Local header size is unknown ahead of time (extra fields differ from the
+    # central directory's), so overfetch a margin and locate it for real.
+    margin = 256
+    chunk = http_get_range(
+        url, local_offset, local_offset + 30 + len(member) + margin + csize - 1
+    )
+    if chunk[:4] != b"PK\x03\x04":
+        raise RuntimeError(f"{url}: bad local file header for {member!r}")
+    local_nlen, local_elen = struct.unpack("<HH", chunk[26:30])
+    data_start = 30 + local_nlen + local_elen
+    compressed = chunk[data_start : data_start + csize]
+    if len(compressed) != csize:
+        raise RuntimeError(f"{url}: short read fetching {member!r}")
+
+    if method == 8:
+        content = zlib.decompressobj(-15).decompress(compressed)
+    elif method == 0:
+        content = compressed
+    else:
+        raise RuntimeError(f"{url}: unsupported compression method {method}")
+    if len(content) != usize:
+        raise RuntimeError(f"{url}: {member!r} decompressed to the wrong size")
+    return content
 
 
 def fetch_data(force):
@@ -213,6 +306,40 @@ def fetch_stations(force):
     print(f"stations: {len(codes)} stations in {STATIONS}")
 
 
+def fetch_geometry(force):
+    """Fetch per-channel lat/lon for each cable, as `distance,latitude,longitude`
+    CSVs. `distance` is kilometres along the cable, matching what notebooks 04
+    and 06 expect in `data/geometry/{node}_{cable}.csv`."""
+    if not force and all(
+        (GEOMETRY / f"{name}.csv").exists() for name in GEOMETRY_MEMBERS
+    ):
+        print(f"geometry: already in {GEOMETRY}, skipping")
+        return
+
+    GEOMETRY.mkdir(parents=True, exist_ok=True)
+    for name, member in GEOMETRY_MEMBERS.items():
+        dest = GEOMETRY / f"{name}.csv"
+        if not force and dest.exists():
+            continue
+        print(f"geometry: fetching {name} from {member}")
+        raw = fetch_zip_member(GEOMETRY_ZIP_URL, member).decode()
+        rows = raw.splitlines()
+        header = rows[0].split(",")
+        lon_i, lat_i, id_i = (header.index(c) for c in ("longitude", "latitude", "id"))
+
+        with open(dest, "w") as file:
+            file.write("distance,latitude,longitude\n")
+            for row in rows[1:]:
+                cols = row.split(",")
+                # ids look like "CN000001": a two-letter prefix, then the
+                # distance along the cable in whole metres.
+                distance_km = int(cols[id_i][2:]) / 1000
+                file.write(f"{distance_km:.4f},{cols[lat_i]},{cols[lon_i]}\n")
+        print(f"  {dest.name}: {len(rows) - 1} points")
+
+    print(f"geometry: {len(GEOMETRY_MEMBERS)} cables in {GEOMETRY}")
+
+
 def fetch_model(force):
     """Cache the pretrained picker, so that nothing is downloaded while picking."""
     print("model: loading seisbench, which imports torch and takes a few seconds")
@@ -246,6 +373,7 @@ def main():
 
     fetch_data(args.force)
     fetch_stations(args.force)
+    fetch_geometry(args.force)
     fetch_model(args.force)
     OUTPUTS.mkdir(exist_ok=True)
 

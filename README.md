@@ -43,8 +43,10 @@ uv run install.py
 
 That single command creates the environment, installs every library the seven
 notebooks use, downloads the DAS samples from Zenodo and unzips them into
-`data/`, and fetches the seismological waveforms of notebook 05 into
-`data/stations/` — one miniSEED file per station, plus the inventory.
+`data/`, fetches the seismological waveforms of notebook 05 into
+`data/stations/` — one miniSEED file per station, plus the inventory — and
+pulls the per-channel cable geometry (`CCN_N`, `SER_N`, `SER_S`) into
+`data/geometry/`.
 
 A few things worth knowing before you start it:
 

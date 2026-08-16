@@ -3,10 +3,13 @@
 Two things are in here: what I **already changed**, and what I **propose** to
 do next.
 
-**Status:** eight notebooks, all executing end to end with zero failing cells.
-01–05 are the existing ones rewritten; 06, 07 and 08 are new. The only part
-of your original request I could not finish is putting the DAS channels into
-the GaMMA association, which needs the cable geometry — see section 5.
+**Status:** eight notebooks. 01–05 are the existing ones rewritten; 06, 07
+and 08 are new. The DAS-into-GaMMA piece that section 5 originally flagged
+as blocked on cable geometry is now built. Two unrelated regressions surfaced
+on the `xdas` `dev` branch while re-running everything against the currently
+pinned commit — `xd.decimate` gone, and the atom-composition-vs-monolithic
+equivalence broken in notebook 03 — see section 6, items 5–6; notebook 03
+currently has three failing cells because of the second one.
 
 ---
 
@@ -83,11 +86,13 @@ two enormous ones are `VA06`'s false picks at 287 km, which GaMMA discarded —
 a much better lesson about what an associator is *for* than any amount of
 prose.
 
-The cable never enters the association, which makes it an independent check:
-the median S−P over 1743 channels implies a hypocentral distance of **32 km**
-against the network's **36 km** depth. The fiber sits almost above the source,
-so those two numbers are measuring the same thing, and they agree about as
-well as an 8-pick location with two constant velocities can.
+The cable starts as an independent check: the median S−P over the picked
+channels implies a hypocentral distance close to the network's depth. The
+fiber sits almost above the source, so those two numbers are measuring the
+same thing, and they agree about as well as an 8-pick location with two
+constant velocities can. It then stops being just a witness — see the update
+in section 5.1 — once real geometry lets its channels join the association
+as stations in their own right.
 
 ### 08 — Manual picking with xpick
 
@@ -141,23 +146,49 @@ connected to the rest, so it is also the easiest to drop.
 
 ## 5. What I need from you
 
-1. ~~**Cable geometry — the one real blocker.**~~ **Resolved.** `install.py`
-   now fetches `CCN_N.csv`, `SER_N.csv` and `SER_S.csv` into `data/geometry/`
-   automatically (`fetch_geometry`, wired into `main()`). The source is the
-   figure data bundled in the companion paper's `codes.zip`
-   (Baillet et al., 2025, JGR, doi:10.1029/2025JB031565, archived at
-   https://zenodo.org/records/15849254) — that zip is 3.3 GB, but the geometry
-   CSVs inside it are pulled out directly with HTTP range requests
+1. ~~**Cable geometry — the one real blocker.**~~ **Resolved, and used.**
+   `install.py` fetches `CCN_N.csv`, `SER_N.csv` and `SER_S.csv` into
+   `data/geometry/` automatically (`fetch_geometry`, wired into `main()`).
+   The source is the figure data bundled in the companion paper's
+   `codes.zip` (Baillet et al., 2025, JGR, doi:10.1029/2025JB031565, archived
+   at https://zenodo.org/records/15849254) — that zip is 3.3 GB, but the
+   geometry CSVs inside it are pulled out directly with HTTP range requests
    (`fetch_zip_member`), so nothing close to the full archive is downloaded.
+
    Real cable lengths turned out to be ~153 km (CCN/N, SER/S) and ~102 km
-   (SER/N) — notebook 04's `tie_values: [0.0, 150.0]` demo relabels SER/N to
-   150 km for illustration, which is fine for that cell but means points past
-   ~102 km along the real geometry clamp to the last sample when interpolated
-   with `np.interp`; worth a look if the DAS channels are joining the
-   association with visibly wrong positions past that mark. Now that
-   `CCN_N.csv` exists too, the association step could pull in the CCN cable
-   for extra azimuthal coverage — not done here since it changes what
-   the notebook narrates, left for you to decide.
+   (SER/N) — `SER_N.csv` stops at 102 km, short of the interrogator's 153 km
+   range, and the first ~4.6 km repeats one coordinate (fiber coiled at the
+   shore station). Both are now handled rather than clamped: notebook 01
+   attaches `latitude`/`longitude` to every cable **at consolidation**
+   (`with_geometry`, right before `to_netcdf`), interpolating with
+   `left=right=np.nan` instead of `np.interp`'s default clamp, so channels
+   past the surveyed length are honestly `NaN` rather than silently pinned to
+   the last sample. `outputs/singlecable.nc` and `multicable.nc` now carry
+   the coordinate, so nothing downstream reloads or reinterpolates the CSV.
+
+   Notebook 04's "Adding a coordinate" section changed to match: it shows
+   what already arrived with the file, explains the `NaN` tail and the
+   coiled-cable ties, then trims to the surveyed/uncoiled stretch
+   (`isel(distance=slice(300, 6660))`) before the `swap_dims` /
+   latitude-`sel` demo, which needs a monotonic axis and would silently break
+   on the untrimmed real data. The old synthetic-fallback branch
+   (`except FileNotFoundError: ... straight cable`) is gone — the file always
+   exists now.
+
+   Notebook 06's "Putting the fiber into the association" section is built:
+   `outputs/singlecable.nc`'s attached geometry is matched to whichever
+   channels the picker fired on (174 of 202 in the current run — the other 28
+   sit past the surveyed 102 km and are dropped), stacked onto the seismic
+   stations/picks tables, and re-associated. This surfaces a few spurious
+   clusters sitting right at `min_picks_per_eq` — a real lesson about
+   per-channel picks, not a bug — sorted out by `gamma_score`, which lands on
+   the same origin as the network-only catalog with dozens of times more
+   picks and a depth that moves (expected: an 8-pick, two-velocity fit was
+   never going to pin it exactly).
+
+   `CCN_N.csv` (unused, full 153 km) could still bring in the second cable
+   for azimuthal coverage — not done here since it changes what the notebook
+   narrates, left for you to decide.
 2. **Whether to apply the renumbering in section 4**, and whether you want the
    streaming notebook.
 3. **Which cuts in section 2 you accept.**
@@ -202,3 +233,24 @@ the xdas repo.
    NumPy timedelta is deprecated". It fires on an ordinary
    `da.sel(time=slice("...", "..."))` and will become an error. Cosmetic today,
    noisy in a tutorial.
+
+5. **`xd.decimate` is gone.** It existed when notebook 04's decimation cell
+   was written (row 22 of the table above) but is absent from the `dev`
+   branch commit now pinned in `uv.lock` (`0567b4e`) — not renamed within
+   `xd.signal` either, which still has the old `decimate(da, q, ...)` taking
+   an integer factor, not a target rate. I patched the one cell that uses it
+   to `xd.resample(da, down=16, dim="distance")`, which is the closest
+   current equivalent, but did not go looking for other cells that might
+   depend on the same entry point.
+
+6. **`atomic.equals(monolithic)` and its two siblings fail in notebook 03**
+   (`xd.resample(..., interval=250, snap=True) >> xd.filter(..., ftype="iir",
+   ...)` composed via `>>` vs. called directly) — the atom/pipeline path and
+   the monolithic call no longer agree bit-for-bit on the pinned commit,
+   which is the exact property notebook 03 exists to demonstrate. I left the
+   three cells failing rather than "fixing" the assertion, since I do not
+   know whether the atom composition or the monolithic call is now the wrong
+   one. `xd.testing.assert_chunk_invariant` two cells later still passes, so
+   this is specifically about `>>`-composition vs. a direct call, not
+   chunking. Ran with `jupyter execute --allow-errors` to still get real
+   `outputs/picks.csv` out of the later, independent picking cells.

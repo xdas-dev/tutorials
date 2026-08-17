@@ -19,6 +19,7 @@ You first need to setup an working environment. Then the tutorials are organized
 | [05](05_seismological_stations.ipynb) | The same pipeline on a regional seismological network, fetched from FDSN |
 | [06](06_catalog_with_gamma.ipynb) | Associating and locating with GaMMA to build a small catalog |
 | [07](07_manual_picking_with_xpick.ipynb) | Reviewing and correcting picks by hand with xpick |
+| [08](08_streaming_and_real_time.ipynb) | Real time: watching a directory, streaming over ZeroMQ, detecting as the data arrives |
 
 The data is a set of telecom cables interrogated in central Chile during the
 POST and ABYSS experiments; the earthquake used from notebook 02 onwards is a
@@ -41,7 +42,7 @@ cd tutorials
 uv run install.py
 ```
 
-That single command creates the environment, installs every library the seven
+That single command creates the environment, installs every library the eight
 notebooks use, downloads the DAS samples from Zenodo and unzips them into
 `data/`, fetches the seismological waveforms of notebook 05 into
 `data/stations/` — one miniSEED file per station, plus the inventory — and

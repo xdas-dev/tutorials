@@ -3,13 +3,14 @@
 Two things are in here: what I **already changed**, and what I **propose** to
 do next.
 
-**Status:** eight notebooks. 01–05 are the existing ones rewritten; 06, 07
-and 08 are new. The DAS-into-GaMMA piece that section 5 originally flagged
-as blocked on cable geometry is now built. Two unrelated regressions surfaced
-on the `xdas` `dev` branch while re-running everything against the currently
-pinned commit — `xd.decimate` gone, and the atom-composition-vs-monolithic
-equivalence broken in notebook 03 — see section 6, items 5–6; notebook 03
-currently has three failing cells because of the second one.
+**Status:** eight notebooks, all six of 01–06 executing end to end with zero
+failing cells (07/08 untouched here). The DAS-into-GaMMA piece that section 5
+originally flagged as blocked on cable geometry is now built. One real
+`xdas` `dev`-branch regression surfaced while re-running everything against
+the currently pinned commit — `xd.decimate` gone, patched in notebook 04 —
+see section 6, item 5. A second thing I first mistook for a regression
+(notebook 03's `atomic.equals(monolithic)`) turned out to be my own bug: see
+section 6, item 6.
 
 ---
 
@@ -243,14 +244,21 @@ the xdas repo.
    current equivalent, but did not go looking for other cells that might
    depend on the same entry point.
 
-6. **`atomic.equals(monolithic)` and its two siblings fail in notebook 03**
-   (`xd.resample(..., interval=250, snap=True) >> xd.filter(..., ftype="iir",
-   ...)` composed via `>>` vs. called directly) — the atom/pipeline path and
-   the monolithic call no longer agree bit-for-bit on the pinned commit,
-   which is the exact property notebook 03 exists to demonstrate. I left the
-   three cells failing rather than "fixing" the assertion, since I do not
-   know whether the atom composition or the monolithic call is now the wrong
-   one. `xd.testing.assert_chunk_invariant` two cells later still passes, so
-   this is specifically about `>>`-composition vs. a direct call, not
-   chunking. Ran with `jupyter execute --allow-errors` to still get real
-   `outputs/picks.csv` out of the later, independent picking cells.
+6. ~~**`atomic.equals(monolithic)` and its two siblings fail in notebook
+   03**~~ **Not an xdas issue — mine, and fixed.** I first assumed this was
+   another `dev`-branch regression and documented it as such; a user who
+   re-ran the notebook could not reproduce, which is what caught it. The
+   actual cause: `outputs/event.nc` now carries the `latitude`/`longitude`
+   coordinates from item 1 above, which are genuinely `NaN` past the
+   surveyed 102 km. `DataArray.equals()` compares coordinates with
+   `DenseCoordinate.equals()`, which uses `np.array_equal(..., equal_nan=
+   False)` — so two arrays with matching `NaN`s at the same positions count
+   as unequal, even though `atomic`/`chunked`/`monolithic` are bit-for-bit
+   identical where it matters (verified with
+   `np.array_equal(a.values, b.values, equal_nan=True)`, which is `True` in
+   all three comparisons). This only breaks *after* the coordinate got
+   NaN-valued entries; it never fired on the stale, pre-geometry
+   `outputs/event.nc` a user with an older `outputs/` still had lying
+   around, which is why it didn't reproduce for them. Fixed the three
+   assertions in notebook 03 to compare `.values` with `equal_nan=True`
+   instead of the whole-object `.equals()`, with a comment explaining why.

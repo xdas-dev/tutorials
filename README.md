@@ -18,7 +18,6 @@ You first need to setup an working environment. Then the tutorials are organized
 | [04](04_playing_with_coordinates.ipynb) | Coordinates: repairing timing that lies, cable geometry, channel names, swapping dimensions |
 | [05](05_seismological_stations.ipynb) | The same pipeline on a regional seismological network, fetched from FDSN |
 | [06](06_catalog_with_gamma.ipynb) | Associating and locating with GaMMA to build a small catalog |
-| [07](07_manual_picking_with_xpick.ipynb) | Reviewing and correcting picks by hand with xpick |
 | [08](08_streaming_and_real_time.ipynb) | Real time: watching a directory, streaming over ZeroMQ, detecting as the data arrives |
 
 The data is a set of telecom cables interrogated in central Chile during the
@@ -42,7 +41,7 @@ cd tutorials
 uv run install.py
 ```
 
-That single command creates the environment, installs every library the eight
+That single command creates the environment, installs every library the seven
 notebooks use, downloads the DAS samples from Zenodo and unzips them into
 `data/`, fetches the seismological waveforms of notebook 05 into
 `data/stations/` — one miniSEED file per station, plus the inventory — and
@@ -56,9 +55,6 @@ A few things worth knowing before you start it:
 - **It is safe to re-run.** A step already done is skipped, and an interrupted
   download resumes where it stopped. Use `uv run install.py --force` to fetch
   everything again from scratch.
-- **Notebook 07 additionally needs Node.js** on your `PATH`: xpick serves a
-  Bokeh app whose picker tool is compiled when it starts. Any recent Node.js
-  will do, for instance `conda install "nodejs>=18"`.
 
 Then start Jupyter — no environment to activate, `uv run` uses the right one:
 
@@ -90,8 +86,5 @@ git reset --hard HEAD
 pretrained PhaseNet weights in `~/.seisbench`, so once it has run **the
 notebooks work offline** — the data, the stations and the model are all on
 disk, and `uv run` no longer reaches out either.
-
-The one exception is notebook 07, whose Bokeh picker tool is compiled by
-Node.js the first time xpick serves it.
 
 You are ready to go!

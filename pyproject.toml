@@ -15,7 +15,6 @@ dependencies = [
     "pyproj",
     "seisbench",
     "xdas",
-    "xpick",
 ]
 
 [tool.uv]
@@ -33,7 +32,3 @@ xdas = { git = "https://github.com/xdas-dev/xdas.git", branch = "dev" }
 # `gmma` is the distribution, `gamma` the import. Not the unrelated PyPI
 # project called GaMMA.
 gmma = { git = "https://github.com/AI4EPS/GaMMA.git" }
-# xpick 0.1, from git: the `xpick` on PyPI is an unrelated project -- do not
-# install it. Serving the app also needs Node.js on the PATH, which bokeh uses
-# to compile its picker tool.
-xpick = { git = "https://github.com/xdas-dev/xpick.git", branch = "main" }

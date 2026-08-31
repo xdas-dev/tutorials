@@ -18,7 +18,7 @@ You first need to setup an working environment. Then the tutorials are organized
 | [04](04_playing_with_coordinates.ipynb) | Coordinates: repairing timing that lies, cable geometry, channel names, swapping dimensions |
 | [05](05_seismological_stations.ipynb) | The same pipeline on a regional seismological network, fetched from FDSN |
 | [06](06_catalog_with_gamma.ipynb) | Associating and locating with GaMMA to build a small catalog |
-| [08](08_streaming_and_real_time.ipynb) | Real time: watching a directory, streaming over ZeroMQ, detecting as the data arrives |
+| [07](07_streaming_and_real_time.ipynb) | Real time: watching a directory, streaming over ZeroMQ, detecting as the data arrives |
 
 The data is a set of telecom cables interrogated in central Chile during the
 POST and ABYSS experiments; the earthquake used from notebook 02 onwards is a

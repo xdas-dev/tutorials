@@ -1,5 +1,5 @@
-data/
-outputs/
+data
 data.zip
-.venv/
+outputs
+.venv
 __pycache__/

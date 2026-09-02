@@ -14,7 +14,7 @@ dependencies = [
     "pandas",
     "pyproj",
     "seisbench",
-    "xdas",
+    "xdas>=0.2.9",
 ]
 
 [tool.uv]
@@ -26,9 +26,6 @@ package = false
 constraint-dependencies = ["numba>=0.60"]
 
 [tool.uv.sources]
-# Until 0.2.9 is released, the notebooks need the development branch. Once it
-# is out, drop this entry and the dependency resolves from PyPI.
-xdas = { git = "https://github.com/xdas-dev/xdas.git", branch = "dev" }
 # `gmma` is the distribution, `gamma` the import. Not the unrelated PyPI
 # project called GaMMA.
 gmma = { git = "https://github.com/AI4EPS/GaMMA.git" }
